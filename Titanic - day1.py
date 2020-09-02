@@ -36,10 +36,10 @@ from sklearn.model_selection import train_test_split
 train, test = train_test_split(titan, test_size = 0.2)
 
 
-target = train["Survived"]
+target = titan["Survived"]
 target = (np.array(target)).reshape(-1)
-train.drop("Survived", axis = 1, inplace = True)
-data = train
+titan.drop("Survived", axis = 1, inplace = True)
+data = titan
 
 target_test = test["Survived"]
 test.drop("Survived", axis = 1, inplace = True)
@@ -73,23 +73,29 @@ y = tf.placeholder(tf.int32, (None))
 he_init = tf.variance_scaling_initializer()
 
 n_h1 = 100
-n_h2 = 200
-n_h3 = 300
+n_h2 = 300
+n_h3 = 100
 n_h4 = 200
 n_h5 = 100
 n_output = 2
-learning_rate = 0.001 
-n_iteration = 3000
+learning_rate = 0.01 
+n_iteration = 20000
 
-hidden1 = tf.layers.dense(X, n_h1, kernel_initializer= he_init, activation = tf.nn.elu, kernel_regularizer= 'l1')
+def max_norm_regularizer(threshhold, axes = 1, collection = "max_norm"):
+    def max_norm(weights):
+        clipped = tf.clip_by_norm(weights, clip_norm = threshhold, axes = axes)
+        clip_weights = tf.assign(weights, clipped)
+        tf.add_to_collection(collection, clip_weights)
+        return None
+    return max_norm
+max_normed = max_norm_regularizer(threshhold= 1.0)
+
+hidden1 = tf.layers.dense(X, n_h1, kernel_initializer= he_init, activation = tf.nn.elu, kernel_regularizer= max_normed)
 h1_drop = tf.layers.dropout(hidden1, rate = 0.5)
-hidden2 = tf.layers.dense(h1_drop, n_h2, kernel_initializer= he_init, activation = tf.nn.elu)
-hidden3 = tf.layers.dense(hidden2, n_h3, kernel_initializer= he_init, activation = tf.nn.elu, kernel_regularizer= 'l1')
-h3_drop = tf.layers.dropout(hidden3, rate = 0.5)
-hidden4 = tf.layers.dense(h3_drop, n_h4, kernel_initializer= he_init, activation = tf.nn.elu, kernel_regularizer= 'l1')
-h4_drop = tf.layers.dropout(hidden4, rate = 0.5)
-hidden5 = tf.layers.dense(h4_drop, n_h5, kernel_initializer= he_init, activation = tf.nn.elu)
-logits = tf.layers.dense(hidden5, n_output)
+hidden2 = tf.layers.dense(h1_drop, n_h2, kernel_initializer= he_init, activation = tf.nn.elu, kernel_regularizer= max_normed)
+h2_drop = tf.layers.dropout(hidden2, rate = 0.5)
+hidden3 = tf.layers.dense(h2_drop, n_h3, kernel_initializer= he_init, activation = tf.nn.elu, kernel_regularizer= max_normed)
+logits = tf.layers.dense(hidden3, n_output)
 
 xentrophy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = logits, labels = y)
 loss = tf.reduce_mean(xentrophy)
