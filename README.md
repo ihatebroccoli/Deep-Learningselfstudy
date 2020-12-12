@@ -1,4 +1,4 @@
-# Deep-Learningselfstudy
+# Deep-Learning selfstudy
 
 Self study
 
